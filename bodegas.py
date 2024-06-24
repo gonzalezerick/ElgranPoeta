@@ -1,21 +1,61 @@
 from db import connect
-import random
+import uuid
 
-def generar_codigo_unico():
-    numeros_unicos = random.sample(range(1, 101), 6)
-    codigo = ''.join(map(str, numeros_unicos))
-    return codigo 
+def crear_bodega(nombre_bodega):
+    if nombre_bodega.strip() == "":
+        print("El nombre de la bodega no puede estar vacío.")
+        return
+    
+    codigo_bodega = str(uuid.uuid4())[:8]  
 
-def crear_bodega(nombre):
-    codigo = generar_codigo_unico()
     conn = connect()
     if conn is not None:
         cursor = conn.cursor()
-        cursor.execute('INSERT INTO bodegas (nombre, codigo) VALUES (%s, %s)', (nombre, codigo))
-        conn.commit()
-        cursor.close()
-        conn.close()
-        print(f"Bodega '{nombre}' creada con el código '{codigo}'.")
+        try:
+            cursor.execute('INSERT INTO bodegas (nombre, codigo, eliminado) VALUES (%s, %s, 0)', (nombre_bodega, codigo_bodega))
+            conn.commit()
+            print(f"Bodega '{nombre_bodega}' creada con éxito.")
+        except Exception as e:
+            conn.rollback()
+            print(f"Error al crear la bodega: {str(e)}")
+        finally:
+            cursor.close()
+            conn.close()
+    else:
+        print("No se pudo conectar a la base de datos.")
+
+def eliminar_bodega(id_bodega):
+    conn = connect()
+    if conn is not None:
+        cursor = conn.cursor()
+        try:
+            cursor.execute('UPDATE bodegas SET eliminado = 1 WHERE id = %s', (id_bodega,))
+            conn.commit()
+            print("Bodega eliminada correctamente y movida a la papelera.")
+        except Exception as e:
+            conn.rollback()
+            print(f"Error al eliminar la bodega: {str(e)}")
+        finally:
+            cursor.close()
+            conn.close()
+    else:
+        print("No se pudo conectar a la base de datos.")
+
+def restaurar_bodega():
+    id_bodega = input("Ingrese el ID de la bodega a restaurar: ")
+    conn = connect()
+    if conn is not None:
+        cursor = conn.cursor()
+        try:
+            cursor.execute('UPDATE bodegas SET eliminado = 0 WHERE id = %s', (id_bodega,))
+            conn.commit()
+            print("Bodega restaurada correctamente.")
+        except Exception as e:
+            conn.rollback()
+            print(f"Error al restaurar la bodega: {str(e)}")
+        finally:
+            cursor.close()
+            conn.close()
     else:
         print("No se pudo conectar a la base de datos.")
 
@@ -23,43 +63,49 @@ def papelera_bodegas():
     conn = connect()
     if conn is not None:
         cursor = conn.cursor()
-        cursor.execute('SELECT * FROM bodegas WHERE eliminado = 1')
-        bodegas_eliminadas = cursor.fetchall()
-        if bodegas_eliminadas:
-            print("\n--- Papelera de Bodegas ---")
-            for bodega in bodegas_eliminadas:
-                print(f"ID: {bodega[0]}, Nombre: {bodega[1]}")
-        else:
-            print("No hay bodegas eliminadas en la papelera.")
-        cursor.close()
-        conn.close()
+        try:
+            cursor.execute('SELECT id, nombre FROM bodegas WHERE eliminado = 1')
+            bodegas = cursor.fetchall()
+            if bodegas:
+                print("\n--- Bodegas Eliminadas ---")
+                print("+" + "-" * 40 + "+")
+                print("| {:<10} | {:<30} |".format("ID", "Nombre"))
+                print("+" + "-" * 40 + "+")
+                for id, nombre in bodegas:
+                    print("| {:<10} | {:<30} |".format(id, nombre))
+                print("+" + "-" * 40 + "+")
+            else:
+                print("No hay bodegas eliminadas.")
+        except Exception as e:
+            print(f"Error al listar las bodegas eliminadas: {str(e)}")
+        finally:
+            cursor.close()
+            conn.close()
     else:
         print("No se pudo conectar a la base de datos.")
 
-def mover_a_papelera_bodega(id_bodega):
+def listar_bodegas():
     conn = connect()
     if conn is not None:
         cursor = conn.cursor()
-        cursor.execute('SELECT COUNT(*) FROM productos WHERE bodega_id = %s AND eliminado = 0', (id_bodega,))
-        if cursor.fetchone()[0] > 0:
-            print("No se puede mover la bodega a la papelera porque tiene productos.")
-        else:
-            cursor.execute('UPDATE bodegas SET eliminado = 1 WHERE id = %s', (id_bodega,))
-            conn.commit()
-            print(f"Bodega con ID '{id_bodega}' movida a la papelera.")
-        cursor.close()
-        conn.close()
+        try:
+            cursor.execute('SELECT id, nombre FROM bodegas WHERE eliminado = 0')
+            bodegas = cursor.fetchall()
+            if bodegas:
+                print("\n--- Bodegas Disponibles ---")
+                print("+" + "-" * 40 + "+")
+                print("| {:<10} | {:<30} |".format("ID", "Nombre"))
+                print("+" + "-" * 40 + "+")
+                for id, nombre in bodegas:
+                    print("| {:<10} | {:<30} |".format(id, nombre))
+                print("+" + "-" * 40 + "+")
+            else:
+                print("No se encuentran bodegas.")
+        except Exception as e:
+            print(f"Error al listar las bodegas: {str(e)}")
+        finally:
+            cursor.close()
+            conn.close()
     else:
         print("No se pudo conectar a la base de datos.")
 
-def restaurar_bodega(id_bodega):
-    conn = connect()
-    if conn is not None:
-        cursor = conn.cursor()
-        cursor.execute('UPDATE bodegas SET eliminado = 0 WHERE id = %s', (id_bodega,))
-        conn.commit()
-        cursor.close()
-        conn.close()
-        print(f"Bodega con ID '{id_bodega}' restaurada.")
-    else:
-        print("No se pudo conectar a la base de datos.")
