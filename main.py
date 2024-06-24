@@ -1,14 +1,27 @@
-from usuarios import autenticar_usuario, crear_usuario, papelera_usuarios, mover_a_papelera_usuario, restaurar_usuario
-from productos import crear_producto, papelera_productos, mover_a_papelera_producto, restaurar_producto
-from bodegas import crear_bodega, papelera_bodegas, mover_a_papelera_bodega, restaurar_bodega
-from movimientos import registrar_movimiento, papelera_movimientos, mover_a_papelera_movimiento, restaurar_movimiento, listar_movimientos
+from usuarios import autenticar_usuario, crear_usuario
+from productos import crear_producto, listar_productos_en_bodega, papelera_productos, restaurar_producto, eliminar_producto
+from bodegas import crear_bodega, listar_bodegas
+from movimientos import registrar_movimiento
+from papelera import papelera_usuarios, papelera_productos, papelera_bodegas, papelera_movimientos, restaurar_usuario, restaurar_producto, restaurar_bodega, restaurar_movimiento
 from db import connect
+import getpass
+
+def imprimir_cuadro(titulo, opciones):
+    print("+" + "-" * 40 + "+")
+    print("|{:^40}|".format(titulo))
+    print("+" + "-" * 40 + "+")
+    for opcion in opciones:
+        print("+" + "-" * 40 + "+")
+        print("| {:<38} |".format(opcion))
+    print("+" + "-" * 40 + "+")
 
 def menu_principal():
-    print("Bienvenido al Sistema de Inventario 'El gran Poeta'")
-    print("1. Iniciar Sesión")
-    print("2. Registrarse")
-    print("3. Salir")
+    opciones = [
+        "1. Iniciar Sesión",
+        "2. Registrarse",
+        "3. Salir"
+    ]
+    imprimir_cuadro("Bienvenido al Sistema del El gran Poeta", opciones)
     
     opcion = input("Seleccione una opción: ")
 
@@ -20,10 +33,10 @@ def menu_principal():
         print("Gracias por usar nuestro sistema. ¡Hasta luego!")
     else:
         print("Opción no válida. Por favor, seleccione una opción válida.")
-    
+
 def iniciar_sesion():
     usuario = input("Usuario: ")
-    contraseña = input("Contraseña: ")
+    contraseña = getpass.getpass("Contraseña: ")
     
     user = autenticar_usuario(usuario, contraseña)
     
@@ -39,32 +52,54 @@ def iniciar_sesion():
         print("Rol de usuario no reconocido.")
 
 def registrar():
-    print("\n--- Registro de Nuevo Usuario ---")
+    print("\n+" + "-" * 40 + "+")
+    print("|{:^40}|".format("Registro de Nuevo Usuario"))
+    print("+" + "-" * 40 + "+")
+    
     nombre = input("Nombre: ")
     usuario = input("Usuario: ")
-    contraseña = input("Contraseña: ")
-    rol = input("Rol (jefe/bodeguero): ")
+    contraseña = getpass.getpass("Contraseña: ")
+    confirmar_contraseña = getpass.getpass("Confirmar Contraseña: ")
+
+    if contraseña != confirmar_contraseña:
+        print("Las contraseñas no coinciden. Volviendo al menú principal.")
+        return menu_principal()
+
+    opciones_rol = ["1. Jefe", "2. Bodeguero"]
+    imprimir_cuadro("Seleccione el rol del usuario", opciones_rol)
+    rol_opcion = input("Seleccione una opción: ")
+    if rol_opcion == "1":
+        rol = "jefe"
+    elif rol_opcion == "2":
+        rol = "bodeguero"
+    else:
+        print("Opción no válida. Volviendo al menú principal.")
+        return menu_principal()
 
     if nombre.strip() == "" or usuario.strip() == "" or contraseña.strip() == "" or rol.strip() not in ["jefe", "bodeguero"]:
-        print("Por favor, complete todos los campos y seleccione un rol válido.")
-        return
+        print("Por favor, complete todos los campos y seleccione un rol válido. Volviendo al menú principal.")
+        return menu_principal()
 
     if crear_usuario(nombre, usuario, contraseña, rol):
-        print("Usuario registrado con éxito. Iniciando sesión...")
-        iniciar_sesion()
+        print("Usuario registrado con éxito. Volviendo al menú principal.")
+        return menu_principal()
     else:
-        print("Error al registrar usuario. Inténtelo de nuevo.")
+        print("Error al registrar usuario. Inténtelo de nuevo. Volviendo al menú principal.")
+        return menu_principal()
 
 def menu_jefe():
     while True:
-        print("\n--- Menú Jefe de Bodega ---")
-        print("1. Crear Bodega")
-        print("2. Crear Producto")
-        print("3. Ver Papelera")
-        print("4. Ver Bodegas Creadas")
-        print("5. Ver Productos Creados")
-        print("6. Generar Informe")
-        print("7. Salir")
+        opciones = [
+            "1. Crear Bodega",
+            "2. Crear Producto",
+            "3. Ver Papelera",
+            "4. Ver Bodegas Creadas",
+            "5. Ver Productos Creados",
+            "6. Generar Informe",
+            "7. Salir"
+        ]
+        imprimir_cuadro("Menú Jefe de Bodega", opciones)
+        
         opcion = input("Seleccione una opción: ")
         
         if opcion == "1":
@@ -80,23 +115,26 @@ def menu_jefe():
         elif opcion == "3":
             ver_papelera("jefe")
         elif opcion == "4":
-            ver_bodegas_creadas()
+            listar_bodegas()
         elif opcion == "5":
-            ver_productos_creados()
+            listar_productos_en_bodega()
         elif opcion == "6":
             generar_informe()
         elif opcion == "7":
             break
         else:
             print("Opción no válida.")
-    
+
 def menu_bodeguero():
     while True:
-        print("\n--- Menú Bodeguero ---")
-        print("1. Registrar Movimiento")
-        print("2. Ver Papelera")
-        print("3. Ver Productos en Bodega")
-        print("4. Salir")
+        opciones = [
+            "1. Registrar Movimiento",
+            "2. Ver Papelera",
+            "3. Ver Productos en Bodega",
+            "4. Salir"
+        ]
+        imprimir_cuadro("Menú Bodeguero", opciones)
+        
         opcion = input("Seleccione una opción: ")
         
         if opcion == "1":
@@ -109,7 +147,7 @@ def menu_bodeguero():
         elif opcion == "2":
             ver_papelera("bodeguero")
         elif opcion == "3":
-            ver_productos_en_bodega()
+            listar_productos_en_bodega()
         elif opcion == "4":
             break
         else:
@@ -117,22 +155,27 @@ def menu_bodeguero():
 
 def ver_papelera(usuario_rol):
     while True:
-        print("\n--- Papelera ---")
         if usuario_rol == "jefe":
-            print("1. Ver Bodegas Eliminadas")
-            print("2. Ver Productos Eliminados")
-            print("3. Ver Movimientos Eliminados")
-            print("4. Ver Usuarios Eliminados")
-            print("5. Restaurar Bodega")
-            print("6. Restaurar Producto")
-            print("7. Restaurar Movimiento")
-            print("8. Restaurar Usuario")
-            print("9. Salir")
+            opciones = [
+                "1. Ver Bodegas Eliminadas",
+                "2. Ver Productos Eliminados",
+                "3. Ver Movimientos Eliminados",
+                "4. Ver Usuarios Eliminados",
+                "5. Restaurar Bodega",
+                "6. Restaurar Producto",
+                "7. Restaurar Movimiento",
+                "8. Restaurar Usuario",
+                "9. Salir"
+            ]
+            imprimir_cuadro("Papelera", opciones)
         elif usuario_rol == "bodeguero":
-            print("1. Ver Productos Eliminados")
-            print("2. Ver Movimientos Eliminados")
-            print("3. Salir")
-
+            opciones = [
+                "1. Ver Productos Eliminados",
+                "2. Ver Movimientos Eliminados",
+                "3. Salir"
+            ]
+            imprimir_cuadro("Papelera", opciones)
+        
         opcion = input("Seleccione una opción: ")
 
         if usuario_rol == "jefe":
@@ -166,7 +209,7 @@ def ver_papelera(usuario_rol):
             else:
                 print("Opción no válida.")
 
-def ver_productos_en_bodega():
+def listar_productos_en_bodega():
     conn = connect()
     if conn is not None:
         cursor = conn.cursor()
@@ -174,141 +217,21 @@ def ver_productos_en_bodega():
         productos = cursor.fetchall()
         if productos:
             print("\n--- Productos Disponibles en la Bodega ---")
+            print("+" + "-" * 80 + "+")
+            print("| {:<20} | {:<30} | {:<30} |".format("Tipo", "Nombre", "Descripción"))
+            print("+" + "-" * 80 + "+")
             for tipo, nombre, descripcion in productos:
-                print(f"Tipo: {tipo}, Nombre: {nombre}, Descripción: {descripcion}")
+                print("| {:<20} | {:<30} | {:<30} |".format(tipo, nombre, descripcion))
+            print("+" + "-" * 80 + "+")
         else:
-            print("No hay productos disponibles en la bodega.")
+            print("No se encuentran productos.")
         cursor.close()
         conn.close()
     else:
         print("No se pudo conectar a la base de datos.")
 
-def papelera_bodegas():
-    conn = connect()
-    if conn is not None:
-        cursor = conn.cursor()
-        cursor.execute('SELECT * FROM bodegas WHERE eliminado = 1')
-        bodegas_eliminadas = cursor.fetchall()
-        if bodegas_eliminadas:
-            print("\n--- Bodegas Eliminadas ---")
-            for bodega in bodegas_eliminadas:
-                print(f"ID: {bodega[0]}, Nombre: {bodega[1]}")
-        else:
-            print("No hay bodegas eliminadas.")
-        cursor.close()
-        conn.close()
-    else:
-        print("No se pudo conectar a la base de datos.")
-
-def restaurar_bodega():
-    conn = connect()
-    if conn is not None:
-        cursor = conn.cursor()
-        cursor.execute('SELECT * FROM bodegas WHERE eliminado = 1')
-        bodegas_eliminadas = cursor.fetchall()
-        if bodegas_eliminadas:
-            print("\n--- Bodegas Eliminadas ---")
-            for bodega in bodegas_eliminadas:
-                print(f"ID: {bodega[0]}, Nombre: {bodega[1]}")
-            id_bodega = input("Seleccione el ID de la Bodega a restaurar: ")
-            cursor.execute('UPDATE bodegas SET eliminado = 0 WHERE id = %s', (id_bodega,))
-            conn.commit()
-            print(f"Bodega con ID '{id_bodega}' restaurada.")
-        else:
-            print("No hay bodegas eliminadas para restaurar.")
-        cursor.close()
-        conn.close()
-    else:
-        print("No se pudo conectar a la base de datos.")
-
-def ver_bodegas_creadas():
-    conn = connect()
-    if conn is not None:
-        cursor = conn.cursor()
-        cursor.execute('SELECT * FROM bodegas WHERE eliminado = 0')
-        bodegas = cursor.fetchall()
-        if bodegas:
-            print("\n--- Bodegas Creadas ---")
-            for bodega in bodegas:
-                print(f"Nombre: {bodega[1]}, Código: {bodega[2]}")
-        else:
-            print("No hay bodegas creadas.")
-        cursor.close()
-        conn.close()
-    else:
-        print("No se pudo conectar a la base de datos.")
-
-def ver_productos_creados():
-    conn = connect()
-    if conn is not None:
-        cursor = conn.cursor()
-        cursor.execute('SELECT * FROM productos WHERE eliminado = 0')
-        productos = cursor.fetchall()
-        if productos:
-            print("\n--- Productos Creados ---")
-            for producto in productos:
-                print(f"Nombre: {producto[1]}, Código: {producto[2]}")
-        else:
-            print("No hay productos creados.")
-        cursor.close()
-        conn.close()
-    else:
-        print("No se pudo conectar a la base de datos.")
-
-def cantidad_productos_por_bodega():
-    conn = connect()
-    if conn is not None:
-        cursor = conn.cursor()
-        cursor.execute('SELECT b.nombre, COUNT(p.id) AS cantidad_productos FROM bodegas b LEFT JOIN productos p ON b.id = p.bodega_id GROUP BY b.nombre')
-        productos_por_bodega = cursor.fetchall()
-        if productos_por_bodega:
-            print("\n--- Cantidad de Productos por Bodega ---")
-            for bodega, cantidad in productos_por_bodega:
-                print(f"Bodega: {bodega}, Cantidad de Productos: {cantidad}")
-        else:
-            print("No hay productos registrados en ninguna bodega.")
-        cursor.close()
-        conn.close()
-    else:
-        print("No se pudo conectar a la base de datos.")
-
-def tipos_de_productos():
-    conn = connect()
-    if conn is not None:
-        cursor = conn.cursor()
-        cursor.execute('SELECT DISTINCT tipo FROM productos')
-        tipos_productos = cursor.fetchall()
-        if tipos_productos:
-            print("\n--- Tipos de Productos Disponibles ---")
-            for tipo in tipos_productos:
-                print(f"Tipo de Producto: {tipo[0]}")
-        else:
-            print("No hay tipos de productos registrados.")
-        cursor.close()
-        conn.close()
-    else:
-        print("No se pudo conectar a la base de datos.")
-
-def listar_productos_por_editorial():
-    editorial = input("Ingrese el nombre de la editorial: ")
-    conn = connect()
-    if conn is not None:
-        cursor = conn.cursor()
-        cursor.execute('SELECT nombre FROM bodegas')
-        bodegas = cursor.fetchall()
-        for bodega in bodegas:
-            cursor.execute('SELECT nombre FROM productos WHERE editorial = %s AND bodega_id = (SELECT id FROM bodegas WHERE nombre = %s)', (editorial, bodega[0]))
-            productos = cursor.fetchall()
-            if productos:
-                print(f"\n--- Productos de la Editorial '{editorial}' en la Bodega '{bodega[0]}' ---")
-                for producto in productos:
-                    print(f"Nombre del Producto: {producto[0]}")
-            else:
-                print(f"No hay productos de la editorial '{editorial}' en la bodega '{bodega[0]}'.")
-        cursor.close()
-        conn.close()
-    else:
-        print("No se pudo conectar a la base de datos.")
+def generar_informe():
+    print("Funcionalidad de generar informe no implementada.")
 
 if __name__ == "__main__":
     menu_principal()
