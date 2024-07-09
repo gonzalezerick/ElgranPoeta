@@ -78,4 +78,3 @@ def restaurar_usuario(id_usuario):
         print(f"Usuario con ID '{id_usuario}' restaurado.")
     else:
         print("No se pudo conectar a la base de datos.")
-
