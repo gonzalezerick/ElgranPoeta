@@ -1,11 +1,28 @@
-from usuarios import autenticar_usuario, crear_usuario
-from productos import crear_producto, listar_productos_en_bodega, papelera_productos, restaurar_producto, eliminar_producto
-from bodegas import crear_bodega, listar_bodegas
-from movimientos import registrar_movimiento
-from papelera import papelera_usuarios, papelera_productos, papelera_bodegas, papelera_movimientos, restaurar_usuario, restaurar_producto, restaurar_bodega, restaurar_movimiento
-from db import connect
+import os
 import getpass
+from usuarios import autenticar_usuario, crear_usuario
+from productos import crear_producto, listar_productos_en_bodega, papelera_productos, ver_productos_eliminados, restaurar_producto
+from bodegas import listar_bodegas, crear_bodega, papelera_bodegas, restaurar_bodega
+from informes import generar_informe, mover_informe_a_papelera, restaurar_informe_papelera, inicializar_directorio_informes, ver_informe, listar_informes, listar_informes_papelera, ver_informes_en_papelera, generar_informe_movimiento
+from movimientos import guardar_informe_en_bodeguero, inicializar_directorio_informes_bodeguero, realizar_movimiento
 
+# Constante para la carpeta de la papelera de productos
+PAPELERA_PRODUCTOS_DIR = "papelera_productos"
+
+# Constante para la carpeta de informes de bodeguero
+INFORMES_BODEGUERO_DIR = "informes_bodeguero"
+
+# Funciones de utilidad para limpiar pantalla y pausar
+def limpiar_pantalla():
+    if os.name == "nt":
+        os.system("cls")
+    else:
+        os.system("clear")
+
+def pausa():
+    input("Presione Enter para continuar...")
+
+# Función para imprimir un cuadro de texto
 def imprimir_cuadro(titulo, opciones):
     print("+" + "-" * 40 + "+")
     print("|{:^40}|".format(titulo))
@@ -15,55 +32,67 @@ def imprimir_cuadro(titulo, opciones):
         print("| {:<38} |".format(opcion))
     print("+" + "-" * 40 + "+")
 
+# Menú principal del sistema
 def menu_principal():
-    opciones = [
-        "1. Iniciar Sesión",
-        "2. Registrarse",
-        "3. Salir"
-    ]
-    imprimir_cuadro("Bienvenido al Sistema del El gran Poeta", opciones)
-    
-    opcion = input("Seleccione una opción: ")
+    while True:
+        limpiar_pantalla()
+        opciones = [
+            "1. Iniciar Sesión",
+            "2. Registrarse",
+            "3. Salir"
+        ]
+        imprimir_cuadro("Bienvenido al Sistema del El Gran Poeta", opciones)
 
-    if opcion == "1":
-        iniciar_sesion()
-    elif opcion == "2":
-        registrar()
-    elif opcion == "3":
-        print("Gracias por usar nuestro sistema. ¡Hasta luego!")
-    else:
-        print("Opción no válida. Por favor, seleccione una opción válida.")
+        opcion = input("Seleccione una opción: ")
 
+        if opcion == "1":
+            iniciar_sesion()
+        elif opcion == "2":
+            registrar()
+        elif opcion == "3":
+            print("Gracias por usar nuestro sistema. ¡Hasta luego!")
+            break
+        else:
+            print("Opción no válida. Por favor, seleccione una opción válida.")
+            pausa()
+
+# Función para iniciar sesión en el sistema
 def iniciar_sesion():
+    limpiar_pantalla()
     usuario = input("Usuario: ")
     contraseña = getpass.getpass("Contraseña: ")
-    
+
     user = autenticar_usuario(usuario, contraseña)
-    
+
     if not user:
         print("Usuario o contraseña incorrecta.")
+        pausa()
         return
-    
+
     if user[4] == "jefe":
         menu_jefe()
     elif user[4] == "bodeguero":
         menu_bodeguero()
     else:
         print("Rol de usuario no reconocido.")
+        pausa()
 
+# Función para registrar un nuevo usuario
 def registrar():
+    limpiar_pantalla()
     print("\n+" + "-" * 40 + "+")
     print("|{:^40}|".format("Registro de Nuevo Usuario"))
     print("+" + "-" * 40 + "+")
-    
+
     nombre = input("Nombre: ")
     usuario = input("Usuario: ")
     contraseña = getpass.getpass("Contraseña: ")
     confirmar_contraseña = getpass.getpass("Confirmar Contraseña: ")
 
     if contraseña != confirmar_contraseña:
-        print("Las contraseñas no coinciden. Volviendo al menú principal.")
-        return menu_principal()
+        print("Las contraseñas no coinciden.")
+        pausa()
+        return
 
     opciones_rol = ["1. Jefe", "2. Bodeguero"]
     imprimir_cuadro("Seleccione el rol del usuario", opciones_rol)
@@ -73,165 +102,194 @@ def registrar():
     elif rol_opcion == "2":
         rol = "bodeguero"
     else:
-        print("Opción no válida. Volviendo al menú principal.")
-        return menu_principal()
+        print("Opción no válida.")
+        pausa()
+        return
 
-    if nombre.strip() == "" or usuario.strip() == "" or contraseña.strip() == "" or rol.strip() not in ["jefe", "bodeguero"]:
-        print("Por favor, complete todos los campos y seleccione un rol válido. Volviendo al menú principal.")
-        return menu_principal()
+    if not (nombre.strip() and usuario.strip() and contraseña.strip() and rol in ["jefe", "bodeguero"]):
+        print("Por favor, complete todos los campos y seleccione un rol válido.")
+        pausa()
+        return
 
     if crear_usuario(nombre, usuario, contraseña, rol):
-        print("Usuario registrado con éxito. Volviendo al menú principal.")
-        return menu_principal()
+        print("Usuario creado correctamente.")
     else:
-        print("Error al registrar usuario. Inténtelo de nuevo. Volviendo al menú principal.")
-        return menu_principal()
+        print("Error al crear el usuario. Inténtelo de nuevo.")
+    pausa()
 
+# Menú para el rol de jefe
 def menu_jefe():
     while True:
+        limpiar_pantalla()
+        opciones = [
+            "1. Gestionar Bodegas",
+            "2. Gestionar Productos",
+            "3. Generar Informe",
+            "4. Ver Informes",
+            "5. Papelera de Informes",
+            "6. Cerrar Sesión"
+        ]
+        imprimir_cuadro("Menú del Jefe", opciones)
+
+        opcion = input("Seleccione una opción: ")
+
+        if opcion == "1":
+            menu_gestion_bodegas()
+        elif opcion == "2":
+            menu_gestion_productos()
+        elif opcion == "3":
+            generar_informe_menu_jefe()
+            pausa()
+        elif opcion == "4":
+            while True:
+                limpiar_pantalla()
+                listar_informes()
+                informe_seleccionado = input("Ingrese el código del informe a ver (0 para salir): ")
+                if informe_seleccionado == "0":
+                    break
+                try:
+                    ver_informe(informe_seleccionado)
+                    pausa()
+                except ValueError:
+                    print("Código no válido. Debe ser un número.")
+                    pausa()
+        elif opcion == "5":
+            menu_papelera_informes()
+        elif opcion == "6":
+            break
+        else:
+            print("Opción no válida. Por favor, seleccione una opción válida.")
+            pausa()
+
+# Función para generar un informe desde el menú del jefe
+def generar_informe_menu_jefe():
+    nombre = input("Nombre del informe: ")
+    cantidad = input("Cantidad de productos: ")
+    tipo = input("Tipo de producto: ")
+    editorial = input("Editorial: ")
+    generar_informe(nombre, cantidad, tipo, editorial)
+
+# Función para el menú de gestión de bodegas
+def menu_gestion_bodegas():
+    while True:
+        limpiar_pantalla()
         opciones = [
             "1. Crear Bodega",
-            "2. Crear Producto",
-            "3. Ver Papelera",
-            "4. Ver Bodegas Creadas",
-            "5. Ver Productos Creados",
-            "6. Generar Informe",
-            "7. Salir"
+            "2. Bodegas Creadas",
+            "3. Papelera de Bodegas",
+            "4. Volver al Menú Principal"
         ]
-        imprimir_cuadro("Menú Jefe de Bodega", opciones)
-        
+        imprimir_cuadro("Gestión de Bodegas", opciones)
+
         opcion = input("Seleccione una opción: ")
-        
+
         if opcion == "1":
-            nombre_bodega = input("Nombre de la Bodega: ")
-            crear_bodega(nombre_bodega)
+            crear_bodega()
+            pausa()
         elif opcion == "2":
-            tipo = input("Tipo de Producto (Libro/Revista/Enciclopedia): ")
-            nombre = input("Nombre del Producto: ")
+            listar_bodegas()
+            pausa()
+        elif opcion == "3":
+            papelera_bodegas()
+            pausa()
+        elif opcion == "4":
+            break
+        else:
+            print("Opción no válida. Por favor, seleccione una opción válida.")
+            pausa()
+
+# Función para el menú de gestión de productos
+def menu_gestion_productos():
+    while True:
+        limpiar_pantalla()
+        opciones = [
+            "1. Crear Producto",
+            "2. Listar Productos",
+            "3. Papelera de Productos",
+            "4. Volver al Menú Principal"
+        ]
+        imprimir_cuadro("Gestión de Productos", opciones)
+
+        opcion = input("Seleccione una opción: ")
+
+        if opcion == "1":
+            tipo_opciones = [
+                "1. Libro",
+                "2. Revista",
+                "3. Enciclopedia"
+            ]
+            imprimir_cuadro("Seleccione el tipo de producto", tipo_opciones)
+            tipo_opcion = input("Seleccione una opción: ")
+
+            if tipo_opcion == "1":
+                tipo = "Libro"
+            elif tipo_opcion == "2":
+                tipo = "Revista"
+            elif tipo_opcion == "3":
+                tipo = "Enciclopedia"
+            else:
+                print("Opción no válida.")
+                pausa()
+                continue
+
+            nombre = input("Nombre del producto: ")
             editorial = input("Editorial: ")
             autores = input("Autores: ")
             descripcion = input("Descripción: ")
             crear_producto(tipo, nombre, editorial, autores, descripcion)
-        elif opcion == "3":
-            ver_papelera("jefe")
-        elif opcion == "4":
-            listar_bodegas()
-        elif opcion == "5":
-            listar_productos_en_bodega()
-        elif opcion == "6":
-            generar_informe()
-        elif opcion == "7":
-            break
-        else:
-            print("Opción no válida.")
+            pausa()
 
+        elif opcion == "2":
+            while True:
+                limpiar_pantalla()
+                listar_productos_en_bodega()
+                producto_a_eliminar = input("Ingrese el ID del producto a eliminar (0 para salir): ")
+                if producto_a_eliminar == "0":
+                    break
+                if confirmacion == "S":
+                    eliminar_producto(producto_a_eliminar)
+                    print(f"Producto {producto_a_eliminar} eliminado correctamente.")
+                elif confirmacion == "N":
+                    print("Operación cancelada.")
+                else:
+                    print("Opción no válida. Por favor, seleccione S o N.")
+                    pausa()
+
+        elif opcion == "3":
+            papelera_productos()
+            pausa()
+
+        elif opcion == "4":
+            break
+
+        else:
+            print("Opción no válida. Por favor, seleccione una opción válida.")
+            pausa()
+
+# Menú para el rol de bodeguero
 def menu_bodeguero():
     while True:
+        limpiar_pantalla()
         opciones = [
-            "1. Registrar Movimiento",
-            "2. Ver Papelera",
-            "3. Ver Productos en Bodega",
-            "4. Salir"
+            "1. Realizar Movimiento",
+            "2. Cerrar Sesión"
         ]
-        imprimir_cuadro("Menú Bodeguero", opciones)
-        
+        imprimir_cuadro("Menú del Bodeguero", opciones)
+
         opcion = input("Seleccione una opción: ")
-        
+
         if opcion == "1":
-            bodega_origen = input("ID de Bodega Origen: ")
-            bodega_destino = input("ID de Bodega Destino: ")
-            productos = input("Productos (separados por comas): ")
-            cantidades = input("Cantidades (separadas por comas): ")
-            usuario = input("Usuario que realiza el movimiento: ")
-            registrar_movimiento(bodega_origen, bodega_destino, productos, cantidades, usuario)
+            realizar_movimiento()
+            pausa()
+
         elif opcion == "2":
-            ver_papelera("bodeguero")
-        elif opcion == "3":
-            listar_productos_en_bodega()
-        elif opcion == "4":
             break
+
         else:
-            print("Opción no válida.")
+            print("Opción no válida. Por favor, seleccione una opción válida.")
+            pausa()
 
-def ver_papelera(usuario_rol):
-    while True:
-        if usuario_rol == "jefe":
-            opciones = [
-                "1. Ver Bodegas Eliminadas",
-                "2. Ver Productos Eliminados",
-                "3. Ver Movimientos Eliminados",
-                "4. Ver Usuarios Eliminados",
-                "5. Restaurar Bodega",
-                "6. Restaurar Producto",
-                "7. Restaurar Movimiento",
-                "8. Restaurar Usuario",
-                "9. Salir"
-            ]
-            imprimir_cuadro("Papelera", opciones)
-        elif usuario_rol == "bodeguero":
-            opciones = [
-                "1. Ver Productos Eliminados",
-                "2. Ver Movimientos Eliminados",
-                "3. Salir"
-            ]
-            imprimir_cuadro("Papelera", opciones)
-        
-        opcion = input("Seleccione una opción: ")
-
-        if usuario_rol == "jefe":
-            if opcion == "1":
-                papelera_bodegas()
-            elif opcion == "2":
-                papelera_productos()
-            elif opcion == "3":
-                papelera_movimientos()
-            elif opcion == "4":
-                papelera_usuarios()
-            elif opcion == "5":
-                restaurar_bodega()
-            elif opcion == "6":
-                restaurar_producto()
-            elif opcion == "7":
-                restaurar_movimiento()
-            elif opcion == "8":
-                restaurar_usuario()
-            elif opcion == "9":
-                break
-            else:
-                print("Opción no válida.")
-        elif usuario_rol == "bodeguero":
-            if opcion == "1":
-                papelera_productos()
-            elif opcion == "2":
-                papelera_movimientos()
-            elif opcion == "3":
-                break
-            else:
-                print("Opción no válida.")
-
-def listar_productos_en_bodega():
-    conn = connect()
-    if conn is not None:
-        cursor = conn.cursor()
-        cursor.execute('SELECT tipo, nombre, descripcion FROM productos WHERE eliminado = 0')
-        productos = cursor.fetchall()
-        if productos:
-            print("\n--- Productos Disponibles en la Bodega ---")
-            print("+" + "-" * 80 + "+")
-            print("| {:<20} | {:<30} | {:<30} |".format("Tipo", "Nombre", "Descripción"))
-            print("+" + "-" * 80 + "+")
-            for tipo, nombre, descripcion in productos:
-                print("| {:<20} | {:<30} | {:<30} |".format(tipo, nombre, descripcion))
-            print("+" + "-" * 80 + "+")
-        else:
-            print("No se encuentran productos.")
-        cursor.close()
-        conn.close()
-    else:
-        print("No se pudo conectar a la base de datos.")
-
-def generar_informe():
-    print("Funcionalidad de generar informe no implementada.")
-
+# Inicialización del sistema
 if __name__ == "__main__":
+    inicializar_directorio_informes()
     menu_principal()
