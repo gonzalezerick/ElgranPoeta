@@ -32,6 +32,9 @@ def create_tables():
                             id INT AUTO_INCREMENT PRIMARY KEY,
                             nombre VARCHAR(255) NOT NULL,
                             codigo VARCHAR(255) NOT NULL UNIQUE,
+                            ubicacion VARCHAR(255),
+                            capacidad INT,
+                            direccion VARCHAR(255),  -- Nueva columna 'direccion'
                             eliminado BOOLEAN DEFAULT FALSE
                           )''')
         
@@ -42,7 +45,7 @@ def create_tables():
                             editorial VARCHAR(255),
                             autores VARCHAR(255),
                             descripcion TEXT,
-                            codigo_producto VARCHAR(255) NOT NULL UNIQUE,  # Se agregó la columna 'codigo_producto'
+                            codigo_producto VARCHAR(255) NOT NULL UNIQUE,
                             eliminado BOOLEAN DEFAULT FALSE
                           )''')
         
@@ -62,21 +65,41 @@ def create_tables():
         conn.commit()
         cursor.close()
         conn.close()
+        print("Tablas creadas correctamente.")
     else:
         print("No se pudo conectar a la base de datos.")
 
-def ver_productos_en_bodega():
+def describe_bodegas():
     conn = connect()
     if conn is not None:
         cursor = conn.cursor()
-        cursor.execute('SELECT tipo, nombre, descripcion, codigo_producto FROM productos WHERE eliminado = 0')
-        productos = cursor.fetchall()
-        if productos:
-            print("\n--- Productos Disponibles en la Bodega ---")
-            for tipo, nombre, descripcion, codigo_producto in productos:
-                print(f"Tipo: {tipo}, Nombre: {nombre}, Descripción: {descripcion}, Código: {codigo_producto}")
-        else:
-            print("No hay productos disponibles en la bodega.")
+        cursor.execute("DESCRIBE bodegas;")
+        result = cursor.fetchall()
+        for row in result:
+            print(row)
+        cursor.close()
+        conn.close()
+    else:
+        print("No se pudo conectar a la base de datos.")
+
+def add_missing_columns():
+    conn = connect()
+    if conn is not None:
+        cursor = conn.cursor()
+        columns = {
+            "ubicacion": "VARCHAR(255)",
+            "capacidad": "INT"
+        }
+        for column, col_type in columns.items():
+            try:
+                cursor.execute(f"ALTER TABLE bodegas ADD COLUMN {column} {col_type};")
+                conn.commit()
+                print(f"Columna '{column}' añadida correctamente.")
+            except Error as e:
+                if "Duplicate column name" in str(e):
+                    print(f"La columna '{column}' ya existe.")
+                else:
+                    print(f"Error al agregar la columna '{column}': {e}")
         cursor.close()
         conn.close()
     else:
@@ -84,3 +107,6 @@ def ver_productos_en_bodega():
 
 if __name__ == "__main__":
     create_tables()
+    describe_bodegas()
+    add_missing_columns()
+    describe_bodegas()
