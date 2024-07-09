@@ -1,77 +1,57 @@
-from db import connect
-from datetime import datetime
+import os
 
-def registrar_movimiento(bodega_origen, bodega_destino, productos, cantidades, usuario):
-    fecha = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    conn = connect()
-    if conn is not None:
-        cursor = conn.cursor()
-        cursor.execute('INSERT INTO movimientos (bodega_origen, bodega_destino, productos, cantidades, usuario, fecha) VALUES (%s, %s, %s, %s, %s, %s)',
-                       (bodega_origen, bodega_destino, productos, cantidades, usuario, fecha))
-        conn.commit()
-        cursor.close()
-        conn.close()
-        print(f"Movimiento registrado con éxito de '{bodega_origen}' a '{bodega_destino}'.")
+# Constante para la carpeta de informes de bodeguero
+INFORMES_BODEGUERO_DIR = "informes_bodeguero"
+
+
+# Función para guardar un informe en la carpeta del bodeguero
+def guardar_informe_en_bodeguero(nombre_informe, contenido):
+    ruta_informe = os.path.join(INFORMES_BODEGUERO_DIR, f"{nombre_informe}.txt")
+    with open(ruta_informe, "w") as file:
+        file.write(contenido)
+    print(f"Informe '{nombre_informe}' guardado en '{ruta_informe}'.")
+
+
+# Inicialización del directorio de informes de bodeguero
+def inicializar_directorio_informes_bodeguero():
+    if not os.path.exists(INFORMES_BODEGUERO_DIR):
+        os.makedirs(INFORMES_BODEGUERO_DIR)
+        print(f"Directorio '{INFORMES_BODEGUERO_DIR}' creado correctamente.")
     else:
-        print("No se pudo conectar a la base de datos.")
+        print(f"Directorio '{INFORMES_BODEGUERO_DIR}' ya existe.")
 
-def papelera_movimientos():
-    conn = connect()
-    if conn is not None:
-        cursor = conn.cursor()
-        cursor.execute('SELECT * FROM movimientos WHERE eliminado = 1')
-        movimientos_eliminados = cursor.fetchall()
-        if movimientos_eliminados:
-            print("\n--- Papelera de Movimientos ---")
-            for movimiento in movimientos_eliminados:
-                print(f"ID: {movimiento[0]}, Origen: {movimiento[1]}, Destino: {movimiento[2]}, Productos: {movimiento[3]}, Cantidades: {movimiento[4]}, Usuario: {movimiento[5]}, Fecha: {movimiento[6]}")
-        else:
-            print("No hay movimientos eliminados en la papelera.")
-        cursor.close()
-        conn.close()
+
+
+
+# Función para realizar un movimiento entre bodegas
+def realizar_movimiento():
+    bodega_origen = input("Ingrese la bodega de origen: ")
+    bodega_destino = input("Ingrese la bodega de destino: ")
+
+    id_producto = input("Ingrese el ID del producto a mover (0 para cancelar): ")
+    if id_producto == "0":
+        return  # Cancelar operación si se ingresa "0"
+
+    cantidad = input("Ingrese la cantidad a mover: ")
+
+    generar_informe_movimiento(bodega_origen, bodega_destino, id_producto, cantidad)
+
+    guardar_informe_en_bodeguero(f"Informe_Movimiento_{bodega_origen}_{bodega_destino}_{id_producto}", f"Información detallada del movimiento.")
+
+    print(f"Producto con ID '{id_producto}' movido de '{bodega_origen}' a '{bodega_destino}'.")
+    pausa()
+
+    # Funciones de utilidad para limpiar pantalla y pausar
+def limpiar_pantalla():
+    if os.name == "nt":
+        os.system("cls")
     else:
-        print("No se pudo conectar a la base de datos.")
+        os.system("clear")
 
-def mover_a_papelera_movimiento(id_movimiento):
-    conn = connect()
-    if conn is not None:
-        cursor = conn.cursor()
-        cursor.execute('UPDATE movimientos SET eliminado = 1 WHERE id = %s', (id_movimiento,))
-        conn.commit()
-        cursor.close()
-        conn.close()
-        print(f"Movimiento con ID '{id_movimiento}' movido a la papelera.")
-    else:
-        print("No se pudo conectar a la base de datos.")
+def pausa():
+    input("Presione Enter para continuar...")
 
-def restaurar_movimiento(id_movimiento):
-    conn = connect()
-    if conn is not None:
-        cursor = conn.cursor()
-        cursor.execute('UPDATE movimientos SET eliminado = 0 WHERE id = %s', (id_movimiento,))
-        conn.commit()
-        cursor.close()
-        conn.close()
-        print(f"Movimiento con ID '{id_movimiento}' restaurado.")
-    else:
-        print("No se pudo conectar a la base de datos.")
 
-def listar_movimientos():
-    conn = connect()
-    if conn is not None:
-        cursor = conn.cursor()
-        cursor.execute('SELECT * FROM movimientos WHERE eliminado = 0')
-        movimientos = cursor.fetchall()
-        if movimientos:
-            print("\n--- Movimientos Realizados ---")
-            for movimiento in movimientos:
-                print(f"ID: {movimiento[0]}, Origen: {movimiento[1]}, Destino: {movimiento[2]}, Productos: {movimiento[3]}, Cantidades: {movimiento[4]}, Usuario: {movimiento[5]}, Fecha: {movimiento[6]}")
-        else:
-            print("No hay movimientos registrados.")
-        cursor.close()
-        conn.close()
-    else:
-        print("No se pudo conectar a la base de datos.")
 
-if __name__ == "__main__":
-    listar_movimientos()
+# Llamada a la función de inicialización
+inicializar_directorio_informes_bodeguero()
