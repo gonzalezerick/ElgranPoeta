@@ -77,45 +77,57 @@ def iniciar_sesion():
 
 # Función para registrar un nuevo usuario
 def registrar():
-    limpiar_pantalla()  
+    limpiar_pantalla()
     print("\n+" + "-" * 40 + "+")
-    print("|{:^40}|".format("Registro de Nuevo Usuario"))  
+    print("|{:^40}|".format("Registro de Nuevo Usuario"))
     print("+" + "-" * 40 + "+")
 
-    nombre = input("Nombre: ")  # Solicitar al usuario que ingrese su nombre
-    usuario = input("Usuario: ")  # Solicitar al usuario que ingrese su nombre de usuario
-    contraseña = getpass.getpass("Contraseña: ")  # Solicitar al usuario que ingrese su contraseña de manera segura
-    confirmar_contraseña = getpass.getpass("Confirmar Contraseña: ")  # Solicitar al usuario que confirme su contraseña
+    nombre = input("Nombre: ")
+    usuario = input("Usuario: ")
+    contraseña = getpass.getpass("Contraseña: ")
+    confirmar_contraseña = getpass.getpass("Confirmar Contraseña: ")
 
     if contraseña != confirmar_contraseña:
-        print("Las contraseñas no coinciden.")  
-        pausa() 
-        return  
+        print("Las contraseñas no coinciden.")
+        pausa()
+        return
 
     opciones_rol = ["1. Jefe", "2. Bodeguero"]
-    imprimir_cuadro("Seleccione el rol del usuario", opciones_rol)  
+    imprimir_cuadro("Seleccione el rol del usuario", opciones_rol)
 
-    rol_opcion = input("Seleccione una opción: ") 
+    rol_opcion = input("Seleccione una opción: ")
 
     if rol_opcion == "1":
-        rol = "jefe"  
+        rol = "jefe"
     elif rol_opcion == "2":
-        rol = "bodeguero" 
+        rol = "bodeguero"
     else:
-        print("Opción no válida.")  
-        pausa()  
-        return  
+        print("Opción no válida.")
+        pausa()
+        return
 
     if not (nombre.strip() and usuario.strip() and contraseña.strip() and rol in ["jefe", "bodeguero"]):
-        print("Por favor, complete todos los campos y seleccione un rol válido.")  
-        pausa() 
-        return  
+        print("Por favor, complete todos los campos y seleccione un rol válido.")
+        pausa()
+        return
+
+    # Solicitar aceptación de términos y condiciones
+    print("\nPor favor, lea y acepte los términos y condiciones:")
+    print("1. Los usuarios deben seguir las políticas de uso del sistema.")
+    print("2. La información del sistema es confidencial y no debe ser compartida sin autorización.")
+    aceptar_terminos = input("¿Acepta los términos y condiciones? (s/n): ")
+
+    if aceptar_terminos.lower() != "s":
+        print("Debe aceptar los términos y condiciones para continuar.")
+        pausa()
+        return
 
     if crear_usuario(nombre, usuario, contraseña, rol):
-        print("Usuario creado correctamente.")  
+        print("Usuario creado correctamente.")
     else:
-        print("Error al crear el usuario. Inténtelo de nuevo.")  
-    pausa()  
+        print("Error al crear el usuario. Inténtelo de nuevo.")
+    pausa()
+
 
 # Menú para el rol de jefe
 def menu_jefe():
